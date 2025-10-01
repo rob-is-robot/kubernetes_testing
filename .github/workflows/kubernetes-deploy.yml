@@ -26,6 +26,7 @@ jobs:
       with:
         node-version: '22'
         cache: 'npm'
+        cache-dependency-path: 'package-lock.json'
 
     - name: Install dependencies
       run: npm ci
@@ -76,12 +77,17 @@ jobs:
     # Note: You'll need to add your Kubernetes config as a secret
     # For this example, we're showing the structure
     - name: Configure kubectl
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       run: |
-        echo "${{ secrets.KUBE_CONFIG }}" | base64 -d > ~/.kube/config
+        mkdir -p ~/.kube
+        echo "$KUBE_CONFIG" | base64 -d > ~/.kube/config
         chmod 600 ~/.kube/config
-      if: env.KUBE_CONFIG != ''
+      if: env.KUBE_CONFIG != null
 
     - name: Deploy to Kubernetes
+      env:
+        KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
       run: |
         # Update image tag in deployment
         sed -i "s|ghcr.io/rob-is-robot/kubernetes-testing-app:latest|${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:main-${{ github.sha }}|g" k8s/deployment.yaml
@@ -96,7 +102,7 @@ jobs:
         
         # Get service info
         kubectl get services kubernetes-testing-service
-      if: env.KUBE_CONFIG != ''
+      if: env.KUBE_CONFIG != null
 
     - name: Deployment Summary
       run: |
