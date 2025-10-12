@@ -91,6 +91,22 @@ jobs:
         severity: 'CRITICAL,HIGH'
       if: github.ref == 'refs/heads/main'
 
+    - name: Generate SBOM with Trivy
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+        format: 'spdx-json'
+        output: 'sbom.spdx.json'
+      if: github.ref == 'refs/heads/main'
+
+    - name: Upload SBOM as artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sbom-${{ github.sha }}
+        path: sbom.spdx.json
+        retention-days: 90
+      if: github.ref == 'refs/heads/main' && hashFiles('sbom.spdx.json') != ''
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
